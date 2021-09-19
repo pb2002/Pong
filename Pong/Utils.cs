@@ -9,7 +9,7 @@ namespace Pong
 {
     public static class Utils
     {
-        // reflect vector in normal
+        // Reflect vector in normal
         public static Vector2 Reflect(this Vector2 v, Vector2 normal)
         {
             // d' = d - 2(d . n) * n
@@ -21,6 +21,7 @@ namespace Pong
             return a * t + b * (1 - t);
         }
 
+        // TODO: Migrate to Collision.cs
         public static bool LineIntersection(Vector2 a1, Vector2 a2, Vector2 b1, Vector2 b2, out Vector2 intersect)
         {
             // Sources:
@@ -54,5 +55,12 @@ namespace Pong
             intersect = a1 + da * t;
             return true;
         }
+
+        // TODO: Migrate to Collision.cs
+        public static bool LineIntersection(Line a, Line b, out Vector2 intersect)
+        {
+            return LineIntersection(a.start, a.end, b.start, b.end, out intersect);
+        }        
+
     }
 }
