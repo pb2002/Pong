@@ -128,15 +128,9 @@ namespace Pong
                     Line[] collisionRays = ball.GetCollisionRays(deltaPos);
                     
                     Line[] player1Edges = new Line[] { player1.transform.Right, player1.transform.Top, player1.transform.Bottom };
-                    player1Edges[1].start -= player1.velocity * dt;
-                    player1Edges[1].end -= player1.velocity * dt;
-                    player1Edges[2].start -= player1.velocity * dt;
-                    player1Edges[2].end -= player1.velocity * dt;
+
                     Line[] player2Edges = new Line[] { player2.transform.Left, player2.transform.Top, player2.transform.Bottom };
-                    player2Edges[1].start -= player1.velocity * dt;
-                    player2Edges[1].end -= player1.velocity * dt;
-                    player2Edges[2].start -= player1.velocity * dt;
-                    player2Edges[2].end -= player1.velocity * dt;
+
 
                     Vector2 nextPos = ball.transform.position + deltaPos;
                     Vector2 intersect;
