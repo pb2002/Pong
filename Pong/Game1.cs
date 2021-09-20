@@ -141,8 +141,7 @@ namespace Pong
                     // Check for intersections with the right player edge
 
                     if (deltaPos.X < 0)
-                    {
-                        // Check for both rays on the left side of the ball (index 0 and 2)                        
+                    {                        
                         if (Utils.ClosestLineIntersection(collisionRays, player1Edges, out intersect, out int ia, out int ib, out float t))
                         {
                             Vector2 n;
