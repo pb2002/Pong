@@ -4,47 +4,6 @@ using Microsoft.Xna.Framework.Input;
 
 namespace Pong
 {
-    
-    public struct Player
-    {
-        public Vector2 position;
-        public Vector2 size;
-        public Vector2 renderPosition;        
-        public bool serving;
-        public int score;
-
-        public Vector2[] corners;
-
-        public Player(Vector2 position, Vector2 size, bool serving)
-        {
-            this.position = position;
-            this.renderPosition = position;
-            this.size = size;
-            this.serving = serving;
-            this.score = 0;
-            var tl = - size / 2;
-            var br = size / 2;
-            corners = new Vector2[] { tl,
-                                 new Vector2(br.X, tl.Y),
-                                 new Vector2(tl.X, br.Y),
-                                 br };
-        }        
-    }
-    public struct Ball
-    {
-        public Vector2 position;
-        public Vector2 size;
-        public Vector2 velocity;
-        
-        public Ball(Vector2 position, Vector2 size, Vector2 velocity)
-        {
-            this.position = position;
-            this.size = size;
-            this.velocity = velocity;
-            
-        }
-    }
-
     public class PongGame : Game
     {
         private GraphicsDeviceManager graphics;
@@ -56,28 +15,17 @@ namespace Pong
         private Ball ball;
 
         // prefs
-        private Vector2 screenSize { get; } = new Vector2(1280, 720);
-        private Vector2 playFieldMargin { get; } = new Vector2(0, 0);
-        private float playerHOffset { get; } = 128;
-        private Vector2 serveBallOffset { get; } = new Vector2(8, 0);
-
-        private Vector2 playerSize { get; } = new Vector2(32,128);
-        private Vector2 ballSize { get; } = new Vector2(32, 32);
-        private float speedMultiplier { get; } = 1.03f;
-        private float ballStartVelocity { get; } = 300;
         
-        private float playerMovementSpeed = 500;
-
-        // textures
+        private float playerMovementSpeed = Settings.PlayerStartSpeed;
+        private Line topWall;
+        private Line bottomWall;
+        // textures            
         private Texture2D playerTexture;
         private Texture2D ballTexture;
         private SpriteFont font;
 
         // input variables
-        private int player1MoveInput;
-        private int player2MoveInput;
-        private bool player1Serve;
-        private bool player2Serve;
+
 
        
         private void DrawSpriteCentered(Texture2D sprite, Vector2 position)
@@ -93,7 +41,7 @@ namespace Pong
         }
 
         
-
+        // TODO: Migrate to InputHandler singleton class
         private void HandleInput()
         {
             GamePadState gamepad1 = GamePad.GetState(PlayerIndex.One);
@@ -116,24 +64,14 @@ namespace Pong
             else if (gamepad2.DPad.Down == ButtonState.Pressed || keyboard.IsKeyDown(Keys.Down))
                 player2MoveInput += 1;
 
-            player1Serve = gamepad1.Buttons.A == ButtonState.Pressed || keyboard.IsKeyDown(Keys.D);
-            player2Serve = gamepad2.Buttons.A == ButtonState.Pressed || keyboard.IsKeyDown(Keys.Left);
+            player1ServeInput = gamepad1.Buttons.A == ButtonState.Pressed || keyboard.IsKeyDown(Keys.D);
+            player2ServeInput = gamepad2.Buttons.A == ButtonState.Pressed || keyboard.IsKeyDown(Keys.Left);
         }
 
-        private void MovePlayers(GameTime gameTime)
+        private void MovePlayers(float dt)
         {
-            float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
-            float player1boundary = playerSize.Y / 2 + playFieldMargin.Y;
-            float player2boundary = playerSize.Y / 2 + playFieldMargin.Y;
-
-            player2.position.Y += player2MoveInput * playerMovementSpeed * dt;
-            player1.position.Y += player1MoveInput * playerMovementSpeed * dt;
-
-            player1.position.Y = MathHelper.Clamp(player1.position.Y, player1boundary, screenSize.Y - player1boundary);
-            player2.position.Y = MathHelper.Clamp(player2.position.Y, player2boundary, screenSize.Y - player2boundary);
-
-            player1.renderPosition = Utils.Lerp(player1.renderPosition, player1.position, 15 * dt);
-            player2.renderPosition = Utils.Lerp(player2.renderPosition, player2.position, 15 * dt);
+            player1.Move(player1MoveInput, dt);          
+            player2.Move(player2MoveInput, dt);
         }
         private Vector2 ResolveCollision(Vector2 start, Vector2 hit, Vector2 n, Vector2 delta)
         {
@@ -149,100 +87,151 @@ namespace Pong
 
             // final position
             return rdn * remainingTravelDistance;
-        }
-        private void MoveBall(GameTime gameTime)
+        }        
+        private void MoveBall(float dt)
         {
             
             if (player1.serving)
             {
                 // use render position here so the ball doesn't lag behind
-                ball.position = player1.renderPosition + serveBallOffset;
-                ball.position.X += player1.size.X / 2 + ball.size.X / 2;
-                if (player1Serve)
+                ball.transform.position = player1.renderPosition + Settings.BallServeOffset;
+                ball.transform.position += (player1.transform.size.X / 2 + ball.transform.size.X / 2) * Vector2.UnitX;
+                if (player1ServeInput)
                 {
                     player1.serving = false;
                     int dir = player1MoveInput == 0 ? 1 : player1MoveInput;
-                    ball.velocity = new Vector2(ballStartVelocity, ballStartVelocity * dir);
+                    ball.velocity = new Vector2(Settings.BallStartSpeed, Settings.BallStartSpeed * dir);
                 }
             }
             else if (player2.serving)
             {
-                ball.position = player2.renderPosition - serveBallOffset;
-                ball.position.X -= player2.size.X / 2 + ball.size.X / 2;
-                if (player2Serve)
+
+                ball.transform.position = player2.renderPosition - Settings.BallServeOffset;
+                ball.transform.position -= (player2.transform.size.X / 2 + ball.transform.size.X / 2) * Vector2.UnitX;
+                if (player2ServeInput)
                 {
                     player2.serving = false;
                     int dir = player2MoveInput == 0 ? -1 : player2MoveInput;
-                    ball.velocity = new Vector2(-ballStartVelocity, ballStartVelocity * dir);
+                    ball.velocity = new Vector2(-Settings.BallStartSpeed, Settings.BallStartSpeed * dir);
                 }
             }
             else
             {
-                Vector2 deltaPos = ball.velocity * (float)gameTime.ElapsedGameTime.TotalSeconds;
-                Vector2 nextPos = ball.position + deltaPos;
-                Vector2 hEdgeOffset = new Vector2(ball.size.X/2, 0);
-                Vector2 vEdgeOffset = new Vector2(0, ball.size.Y/2);
-                Vector2 playFieldTL = playFieldMargin;
-                Vector2 playFieldBR = screenSize - playFieldMargin;
-                Vector2 hit;
+                Vector2 deltaPos = ball.velocity * dt;
 
-                if (Utils.LineIntersection(ball.position, nextPos - vEdgeOffset, playFieldTL, 
-                    new Vector2(playFieldBR.X, playFieldTL.Y), out hit))
+                bool collided = true;
+                // repeat collision checks until there are no collisions
+                while (collided)
                 {
-                    deltaPos = ResolveCollision(ball.position - vEdgeOffset, hit, Vector2.UnitY, deltaPos);
-                    nextPos = hit + vEdgeOffset;// two collisions may occur in one frame (player + wall)
-                }
-                else if (Utils.LineIntersection(ball.position, nextPos + vEdgeOffset,
-                    new Vector2(playFieldTL.X, playFieldBR.Y), playFieldBR, out hit))
-                {
-                    deltaPos = ResolveCollision(ball.position + vEdgeOffset, hit, -Vector2.UnitY, deltaPos);
-                    nextPos = hit - vEdgeOffset;
-                }
+                    collided = false;
+                    
+                    Line[] collisionRays = ball.GetCollisionRays(deltaPos);
+                    
+                    Line[] player1Edges = new Line[] { player1.transform.Right, player1.transform.Top, player1.transform.Bottom };
+                    player1Edges[1].start -= player1.velocity * dt;
+                    player1Edges[1].end -= player1.velocity * dt;
+                    player1Edges[2].start -= player1.velocity * dt;
+                    player1Edges[2].end -= player1.velocity * dt;
+                    Line[] player2Edges = new Line[] { player2.transform.Left, player2.transform.Top, player2.transform.Bottom };
+                    player2Edges[1].start -= player1.velocity * dt;
+                    player2Edges[1].end -= player1.velocity * dt;
+                    player2Edges[2].start -= player1.velocity * dt;
+                    player2Edges[2].end -= player1.velocity * dt;
 
-                if (Utils.LineIntersection(ball.position, nextPos - hEdgeOffset,
-                    player1.position + player1.corners[1] - vEdgeOffset,
-                    player1.position + player1.corners[3] + vEdgeOffset, out hit))
-                {
-                    float collisionRange = player1.size.Y / 2 + vEdgeOffset.Y;
-                    float playerBallHeightDiff = hit.Y - player1.position.Y;
-                    float normalOffset = playerBallHeightDiff / collisionRange;
-                    Vector2 n = Vector2.Normalize(new Vector2(1, normalOffset/2));
-                    deltaPos = ResolveCollision(ball.position - hEdgeOffset, hit, n, deltaPos);
-                    nextPos = hit + hEdgeOffset;
-                    ball.velocity *= speedMultiplier;
-                    playerMovementSpeed *= speedMultiplier;
-                }
-                else if (Utils.LineIntersection(ball.position, nextPos + hEdgeOffset,
-                    player2.position + player2.corners[0] - vEdgeOffset,
-                    player2.position + player2.corners[2] + vEdgeOffset, out hit))
-                {
-                    float collisionRange = player2.size.Y / 2 + vEdgeOffset.Y;
-                    float playerBallHeightDiff = hit.Y - player2.position.Y;
-                    float normalOffset = playerBallHeightDiff / collisionRange;
-                    Vector2 n = Vector2.Normalize(new Vector2(-1, normalOffset/2));
+                    Vector2 nextPos = ball.transform.position + deltaPos;
+                    Vector2 intersect;
+                    
+                    // a collision ray will always hit a player before hitting a wall (can be deduced from playfield layout)
 
-                    deltaPos = ResolveCollision(ball.position + hEdgeOffset, hit, n, deltaPos);
-                    nextPos = hit - hEdgeOffset;
-                    ball.velocity *= speedMultiplier;
-                    playerMovementSpeed *= speedMultiplier;
+                    // Player 1 Collision Check
+                    // Check for intersections with the right player edge
+
+                    if (deltaPos.X < 0)
+                    {
+                        // Check for both rays on the left side of the ball (index 0 and 2)                        
+                        if (Utils.ClosestLineIntersection(collisionRays, player1Edges, out intersect, out int ia, out int ib, out float t))
+                        {
+                            Vector2 n;
+                            switch (ib)
+                            {
+                                case 0:
+                                    n = new Vector2(1, 0); // normal vector of right side (player1 is facing to the right)
+                                    break;
+                                default:
+                                    n = Vector2.Normalize(-deltaPos); // side collision: reverse travel direction
+                                    break;
+                            }
+                            
+                            deltaPos = ResolveCollision(collisionRays[ia].start, intersect, n, deltaPos);
+                            nextPos = intersect + ball.transform.position - collisionRays[ia].start;
+                            collided = true;
+                        }
+                    }
+                    // Player 2 Collision Check
+                    // Check for intersections with the left player edge
+                    else {
+
+                        // Check for both rays on the right side of the ball (index 1 and 3)
+                        if (Utils.ClosestLineIntersection(collisionRays, player2Edges, out intersect, out int ia, out int ib, out float t))
+                        {
+                            Vector2 n;
+                            switch (ib)
+                            {
+                                case 0:
+                                    n = new Vector2(-1, 0); // normal vector of right side (player1 is facing to the right)
+                                    break;
+                                default:
+                                    n = Vector2.Normalize(-deltaPos); // side collision: reverse travel direction
+                                    break;
+                            }
+
+                            deltaPos = ResolveCollision(collisionRays[ia].start, intersect, n, deltaPos);
+                            nextPos = intersect + ball.transform.position - collisionRays[ia].start;
+                            collided = true;
+                        }
+                    }
+                    // Top Wall Collision Check
+                    // walls extend out to infinity so only one ray is needed here
+                    if (deltaPos.Y < 0)
+                    {
+                        if (Utils.LineIntersection(topWall, collisionRays[0], out intersect))
+                        {
+                            Vector2 n = new Vector2(0, 1);
+                            deltaPos = ResolveCollision(collisionRays[0].start, intersect, n, deltaPos);
+                            nextPos = intersect + ball.transform.position - ball.transform.TL;
+                            collided = true;
+                        }
+                    }
+                    // Bottom Wall Collision Check
+                    else
+                    {
+                        if (Utils.LineIntersection(bottomWall, collisionRays[2], out intersect))
+                        {
+                            Vector2 n = new Vector2(0, -1);
+                            deltaPos = ResolveCollision(collisionRays[2].start, intersect, n, deltaPos);
+                            nextPos = intersect + ball.transform.position - ball.transform.BL;
+                            collided = true;
+                        }
+                    }
+                    // Update ball position
+                    ball.transform.position = nextPos;
                 }
-                ball.position = nextPos;
                 ball.velocity = Vector2.Normalize(deltaPos) * ball.velocity.Length();
             }
         }
 
         private void CheckMiss()
         {
-            if (ball.position.X < 0)
+            if (ball.transform.position.X < 0)
             {
                 // player 1 missed, player 2 gets point, player 1 gets service
-                player2.score += 1;
+                player2.lives += 1;
                 player1.serving = true;
             }
-            else if (ball.position.X > screenSize.X)
+            else if (ball.transform.position.X > Settings.screenSize.X)
             {
                 // player 2 missed, player 1 gets point, player 2 gets service
-                player1.score += 1;
+                player1.lives += 1;
                 player2.serving = true;
             }
         }
@@ -253,28 +242,40 @@ namespace Pong
             graphics = new GraphicsDeviceManager(this);
             
             
-            graphics.PreferredBackBufferWidth = (int)screenSize.X;
-            graphics.PreferredBackBufferHeight = (int)screenSize.Y;
+            graphics.PreferredBackBufferWidth = (int)Settings.screenSize.X;
+            graphics.PreferredBackBufferHeight = (int)Settings.screenSize.Y;
             graphics.ApplyChanges();
 
-            player1 = new Player(new Vector2(playerHOffset, screenSize.Y/2),
-                                    playerSize,
-                                    true);
-            player2 = new Player(new Vector2(screenSize.X - playerHOffset, screenSize.Y/2), 
-                                    playerSize,
-                                    false);
-            ball = new Ball(new Vector2(screenSize.X / 2, screenSize.Y / 2),
-                                    ballSize,
-                                    Vector2.Zero);
+            topWall = new Line(
+                Settings.playFieldMargin, 
+                new Vector2(Settings.screenSize.X - Settings.playFieldMargin.X, Settings.playFieldMargin.Y)
+                );
+
+            bottomWall = new Line(
+                new Vector2(Settings.playFieldMargin.X, Settings.screenSize.Y - Settings.playFieldMargin.Y),
+                Settings.screenSize - Settings.playFieldMargin
+                );
 
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
+            IsFixedTimeStep = false;
         }
 
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
+            player1 = new Player(new Vector2(Settings.playerHOffset, Settings.screenSize.Y/2),
+                                    Settings.PlayerSize,
+                                    true,
+                                    playerMovementSpeed);
+            player2 = new Player(new Vector2(Settings.screenSize.X - Settings.playerHOffset, Settings.screenSize.Y/2),
+                                    Settings.PlayerSize,
+                                    false,
+                                    playerMovementSpeed);
 
+            ball = new Ball(new Vector2(Settings.screenSize.X / 2, Settings.screenSize.Y / 2),
+                                    Settings.BallSize,
+                                    Vector2.Zero);
             base.Initialize();
         }
 
@@ -288,9 +289,10 @@ namespace Pong
 
         protected override void Update(GameTime gameTime)
         {
+            float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
             HandleInput();
-            MovePlayers(gameTime);
-            MoveBall(gameTime);
+            MovePlayers(dt);
+            MoveBall(dt);
             CheckMiss();
             base.Update(gameTime);
         }
@@ -302,10 +304,10 @@ namespace Pong
             spriteBatch.Begin();
             DrawSpriteCentered(playerTexture, player1.renderPosition);
             DrawSpriteCentered(playerTexture, player2.renderPosition);
-            DrawSpriteCentered(ballTexture, ball.position);
+            DrawSpriteCentered(ballTexture, ball.transform.position);
 
-            DrawTextCentered(player1.score.ToString(), new Vector2(screenSize.X * 0.25f, screenSize.Y * 0.5f));
-            DrawTextCentered(player2.score.ToString(), new Vector2(screenSize.X * 0.75f, screenSize.Y * 0.5f));
+            DrawTextCentered(player1.lives.ToString(), new Vector2(Settings.screenSize.X * 0.25f, Settings.screenSize.Y * 0.5f));
+            DrawTextCentered(player2.lives.ToString(), new Vector2(Settings.screenSize.X * 0.75f, Settings.screenSize.Y * 0.5f));
             spriteBatch.End();
             
             base.Draw(gameTime);

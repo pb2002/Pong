@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
+﻿using Microsoft.Xna.Framework;
 
 namespace Pong
 {
@@ -18,15 +13,17 @@ namespace Pong
         // Linear interpolation (lerp) for Vector2
         public static Vector2 Lerp(Vector2 a, Vector2 b, float t)
         {
-            return a * t + b * (1 - t);
+            return a * (1 - t) + b * t;
         }
 
         // TODO: Migrate to Collision.cs
-        public static bool LineIntersection(Vector2 a1, Vector2 a2, Vector2 b1, Vector2 b2, out Vector2 intersect)
+        public static bool LineIntersection(Vector2 a1, Vector2 a2, Vector2 b1, Vector2 b2, out Vector2 intersect, out float t)
         {
             // Sources:
             // https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line
             // https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line_segment
+
+            t = 0;
             intersect = Vector2.Zero;
             // calculating the determinant (D)
             Vector2 da = a2 - a1;
@@ -41,7 +38,7 @@ namespace Pong
             // D is equivalent to the denominator in the equations for t and u
 
             // so t will be:
-            float t = (c.X * db.Y - c.Y * db.X) / D;
+            t = (c.X * db.Y - c.Y * db.X) / D;
             // check if t is between 0 and 1 (otherwise intersection lies outside of line segments)
             if (t < 0 || t > 1) return false;
 
@@ -59,8 +56,39 @@ namespace Pong
         // TODO: Migrate to Collision.cs
         public static bool LineIntersection(Line a, Line b, out Vector2 intersect)
         {
-            return LineIntersection(a.start, a.end, b.start, b.end, out intersect);
-        }        
+            return LineIntersection(a.start, a.end, b.start, b.end, out intersect, out float t);
+        }
+        public static bool LineIntersection(Line a, Line b, out Vector2 intersect, out float t)
+        {
+            return LineIntersection(a.start, a.end, b.start, b.end, out intersect, out t);
+        }
+        public static bool ClosestLineIntersection(Line[] a, Line[] b, out Vector2 intersect, out int ia, out int ib, out float t)
+        {
+            ia = -1;
+            ib = -1;
+            t = float.PositiveInfinity;
+            intersect = Vector2.Zero;
 
+            // Player edges are organized such that the first edge in the array is the one facing towards the playing field.
+            // This edge is collided with the most,
+            // so the outside for loop should iterate through the player edges for efficiency
+            for (int j = 0; j < b.Length; j++) { 
+                for (int i = 0; i < a.Length; i++)
+                {
+                    if(LineIntersection(a[i],b[j],out Vector2 _intersect, out float _t))
+                    {
+                        // minimize distance
+                        // because all rays are the same length we can just compare the t value.
+                        if (t > _t)
+                        {
+                            intersect = _intersect;
+                            ia = i;
+                            ib = j;
+                        }
+                    }
+                }
+            }
+            return ia != -1;
+        }
     }
 }
