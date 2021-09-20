@@ -8,15 +8,15 @@ namespace Pong
 
         public Vector2 renderPosition;
         public bool serving;
-        public float movementSpeed;
+        public float movementSpeedMultiplier;
         public int lives;
         public Vector2 normal;
-        public Player(int id, Vector2 position, Vector2 size, bool serving, float movementSpeed) : base(position, size)
+        public Player(int id, Vector2 position, Vector2 size, bool serving) : base(position, size)
         {
             this.id = id;
             this.renderPosition = position;
             this.serving = serving;
-            this.movementSpeed = movementSpeed;
+            this.movementSpeedMultiplier = 1;
             this.lives = 3;
             switch (id)
             {
@@ -41,16 +41,17 @@ namespace Pong
             }
             
         }
-        public void Move(int dir, float dt)
+        public void Move(int dir, float baseSpeed, float dt)
         {
             var pos = transform.position;
 
-            velocity = Vector2.UnitY * dir * movementSpeed;
-            pos.Y += velocity.Y * dt;
+            velocity = Vector2.UnitY * dir * movementSpeedMultiplier * baseSpeed;
+
+            pos.Y += velocity.Y * dt;            
             pos.Y = MathHelper.Clamp(pos.Y, Settings.playFieldMargin.Y + transform.size.Y / 2, 
                                             Settings.screenSize.Y - Settings.playFieldMargin.Y - transform.size.Y / 2);
             transform.position = pos;
-            renderPosition = Utils.Lerp(renderPosition, pos, 15 * dt);            
+            renderPosition = Utils.Lerp(renderPosition, pos, 25 * dt);            
         }
     }
 }

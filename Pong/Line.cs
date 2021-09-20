@@ -15,5 +15,4 @@ namespace Pong
             this.end = end;
         }        
     }
-
 }

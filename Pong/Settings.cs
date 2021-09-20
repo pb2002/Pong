@@ -5,7 +5,7 @@ namespace Pong
     public static class Settings
     {
         // screen size
-        public static Vector2 screenSize { get; } = new Vector2(1280, 720);
+        public static Vector2 screenSize { get; } = new Vector2(1600, 900);
 
         // margins of the playing field
         public static Vector2 playFieldMargin { get; } = new Vector2(0, 0);

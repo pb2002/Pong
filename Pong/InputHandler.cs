@@ -16,11 +16,16 @@ namespace Pong
             new Keys[]{Keys.Up,Keys.Down,Keys.Left},
         };
 
+        public int[] playerMovementInput { get; private set; }
+        public bool[] playerServeInput { get; private set; }
+        public bool startGame { get; private set; }
+
         public InputHandler()
         {            
             current = this;
             playerMovementInput = new int[4] { 0, 0, 0, 0 };
             playerServeInput = new bool[4] { false, false, false, false };
+            startGame = false;
         }
 
         public void HandleInput()
@@ -37,15 +42,7 @@ namespace Pong
                 playerMovementInput[i] = moveInput;
                 playerServeInput[i] = keyboard.IsKeyDown(KeyboardMapping[i][2]) || gamepad.IsButtonDown(ControllerMapping[2]);
             }
+            startGame = keyboard.IsKeyDown(Keys.Space) || GamePad.GetState(0).Buttons.Start == ButtonState.Pressed;
         }
-
-        public int[] playerMovementInput { get; private set; }
-        public bool[] playerServeInput { get; private set; }
-
-        // TODO: integrate
-        public int player1MoveInput;
-        public int player2MoveInput;
-        public bool player1ServeInput;
-        public bool player2ServeInput;
     }
 }

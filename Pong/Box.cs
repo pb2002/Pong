@@ -49,7 +49,8 @@ namespace Pong
         public Line Bottom => new Line(BL, BR);
         public Line Left => new Line(TL, BL);
         public Line Right => new Line(TR, BR);
-
+        
+        public Line[] edges => new Line[]{Top, Bottom,Left,Right};
         public Box(Vector2 position, Vector2 size)
         {
             _position = position;

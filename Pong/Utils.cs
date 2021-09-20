@@ -81,6 +81,7 @@ namespace Pong
                         // because all rays are the same length we can just compare the t value.
                         if (t > _t)
                         {
+                            t = _t;
                             intersect = _intersect;
                             ia = i;
                             ib = j;
@@ -90,5 +91,21 @@ namespace Pong
             }
             return ia != -1;
         }
+        public static Vector2 ResolveCollision(Vector2 start, Vector2 hit, Vector2 n, Vector2 delta)
+        {
+            float deltaLength = delta.Length();
+            float startToHitLength = (start - hit).Length();
+
+            // distance to travel after collision
+            float remainingTravelDistance = deltaLength - startToHitLength;
+
+            // calculate reflected travel direction
+            Vector2 dn = Vector2.Normalize(delta);
+            Vector2 rdn = dn.Reflect(n);
+
+            // final position
+            return rdn * remainingTravelDistance;
+        }
+
     }
 }
