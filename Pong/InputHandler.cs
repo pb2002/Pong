@@ -15,9 +15,9 @@ namespace Pong
         public int[] playerMovementInput { get; private set; }
         public bool[] playerServeInput { get; private set; }
 
-        private int player1MoveInput;
-        private int player2MoveInput;
-        private bool player1ServeInput;
-        private bool player2ServeInput;
+        public int player1MoveInput;
+        public int player2MoveInput;
+        public bool player1ServeInput;
+        public bool player2ServeInput;
     }
 }

@@ -51,27 +51,27 @@ namespace Pong
             if (gamepad1.Buttons.Back == ButtonState.Pressed || keyboard.IsKeyDown(Keys.Escape))
                 Exit();
 
-            player1MoveInput = 0;
-            player2MoveInput = 0;
+            InputHandler.current.player1MoveInput = 0;
+            InputHandler.current.player2MoveInput = 0;
 
             if (gamepad1.DPad.Up == ButtonState.Pressed || keyboard.IsKeyDown(Keys.W))
-                player1MoveInput -= 1;
+                InputHandler.current.player1MoveInput -= 1;
             else if (gamepad1.DPad.Down == ButtonState.Pressed || keyboard.IsKeyDown(Keys.S))
-                player1MoveInput += 1;
+                InputHandler.current.player1MoveInput += 1;
 
             if (gamepad2.DPad.Up == ButtonState.Pressed || keyboard.IsKeyDown(Keys.Up))
-                player2MoveInput -= 1;
+                InputHandler.current.player2MoveInput -= 1;
             else if (gamepad2.DPad.Down == ButtonState.Pressed || keyboard.IsKeyDown(Keys.Down))
-                player2MoveInput += 1;
+                InputHandler.current.player2MoveInput += 1;
 
-            player1ServeInput = gamepad1.Buttons.A == ButtonState.Pressed || keyboard.IsKeyDown(Keys.D);
-            player2ServeInput = gamepad2.Buttons.A == ButtonState.Pressed || keyboard.IsKeyDown(Keys.Left);
+            InputHandler.current.player1ServeInput = gamepad1.Buttons.A == ButtonState.Pressed || keyboard.IsKeyDown(Keys.D);
+            InputHandler.current.player2ServeInput = gamepad2.Buttons.A == ButtonState.Pressed || keyboard.IsKeyDown(Keys.Left);
         }
 
         private void MovePlayers(float dt)
         {
-            player1.Move(player1MoveInput, dt);          
-            player2.Move(player2MoveInput, dt);
+            player1.Move(InputHandler.current.player1MoveInput, dt);          
+            player2.Move(InputHandler.current.player2MoveInput, dt);
         }
         private Vector2 ResolveCollision(Vector2 start, Vector2 hit, Vector2 n, Vector2 delta)
         {
@@ -96,10 +96,10 @@ namespace Pong
                 // use render position here so the ball doesn't lag behind
                 ball.transform.position = player1.renderPosition + Settings.BallServeOffset;
                 ball.transform.position += (player1.transform.size.X / 2 + ball.transform.size.X / 2) * Vector2.UnitX;
-                if (player1ServeInput)
+                if (InputHandler.current.player1ServeInput)
                 {
                     player1.serving = false;
-                    int dir = player1MoveInput == 0 ? 1 : player1MoveInput;
+                    int dir = InputHandler.current.player1MoveInput == 0 ? 1 : InputHandler.current.player1MoveInput;
                     ball.velocity = new Vector2(Settings.BallStartSpeed, Settings.BallStartSpeed * dir);
                 }
             }
@@ -108,10 +108,10 @@ namespace Pong
 
                 ball.transform.position = player2.renderPosition - Settings.BallServeOffset;
                 ball.transform.position -= (player2.transform.size.X / 2 + ball.transform.size.X / 2) * Vector2.UnitX;
-                if (player2ServeInput)
+                if (InputHandler.current.player2ServeInput)
                 {
                     player2.serving = false;
-                    int dir = player2MoveInput == 0 ? -1 : player2MoveInput;
+                    int dir = InputHandler.current.player2MoveInput == 0 ? -1 : InputHandler.current.player2MoveInput;
                     ball.velocity = new Vector2(-Settings.BallStartSpeed, Settings.BallStartSpeed * dir);
                 }
             }
@@ -234,7 +234,7 @@ namespace Pong
         {
             
             graphics = new GraphicsDeviceManager(this);
-            
+            _ = new InputHandler();
             
             graphics.PreferredBackBufferWidth = (int)Settings.screenSize.X;
             graphics.PreferredBackBufferHeight = (int)Settings.screenSize.Y;
