@@ -10,28 +10,22 @@ namespace Pong
         private SpriteBatch spriteBatch;
 
         // objects
-        private Player player1;
-        private Player player2;
+        private Player[] players;
         private Ball ball;
 
-        // prefs
         
-        private float playerMovementSpeed = Settings.PlayerStartSpeed;
         private Line topWall;
         private Line bottomWall;
+
         // textures            
         private Texture2D playerTexture;
         private Texture2D ballTexture;
         private SpriteFont font;
 
-        // input variables
-
-
-       
-        private void DrawSpriteCentered(Texture2D sprite, Vector2 position)
+        private void DrawSpriteCentered(Texture2D sprite, Vector2 position, Color color)
         {
             Vector2 offset = new Vector2(sprite.Width / 2, sprite.Height / 2);
-            spriteBatch.Draw(sprite, position - offset, Color.White);
+            spriteBatch.Draw(sprite, position - offset, color);
         }
 
         private void DrawTextCentered(string text, Vector2 position)
@@ -40,38 +34,12 @@ namespace Pong
             spriteBatch.DrawString(font, text, position, Color.White, 0, textMiddlePoint, 1.0f, SpriteEffects.None, 0.5f);
         }
 
-        
-        // TODO: Migrate to InputHandler singleton class
-        private void HandleInput()
-        {
-            GamePadState gamepad1 = GamePad.GetState(PlayerIndex.One);
-            GamePadState gamepad2 = GamePad.GetState(PlayerIndex.One);
-            KeyboardState keyboard = Keyboard.GetState();
-
-            if (gamepad1.Buttons.Back == ButtonState.Pressed || keyboard.IsKeyDown(Keys.Escape))
-                Exit();
-
-            InputHandler.current.player1MoveInput = 0;
-            InputHandler.current.player2MoveInput = 0;
-
-            if (gamepad1.DPad.Up == ButtonState.Pressed || keyboard.IsKeyDown(Keys.W))
-                InputHandler.current.player1MoveInput -= 1;
-            else if (gamepad1.DPad.Down == ButtonState.Pressed || keyboard.IsKeyDown(Keys.S))
-                InputHandler.current.player1MoveInput += 1;
-
-            if (gamepad2.DPad.Up == ButtonState.Pressed || keyboard.IsKeyDown(Keys.Up))
-                InputHandler.current.player2MoveInput -= 1;
-            else if (gamepad2.DPad.Down == ButtonState.Pressed || keyboard.IsKeyDown(Keys.Down))
-                InputHandler.current.player2MoveInput += 1;
-
-            InputHandler.current.player1ServeInput = gamepad1.Buttons.A == ButtonState.Pressed || keyboard.IsKeyDown(Keys.D);
-            InputHandler.current.player2ServeInput = gamepad2.Buttons.A == ButtonState.Pressed || keyboard.IsKeyDown(Keys.Left);
-        }
-
         private void MovePlayers(float dt)
         {
-            player1.Move(InputHandler.current.player1MoveInput, dt);          
-            player2.Move(InputHandler.current.player2MoveInput, dt);
+            for(int i = 0; i < Settings.PlayerCount; i++)
+            {
+                players[i].Move(InputHandler.current.playerMovementInput[i], dt);
+            }
         }
         private Vector2 ResolveCollision(Vector2 start, Vector2 hit, Vector2 n, Vector2 delta)
         {
@@ -90,36 +58,30 @@ namespace Pong
         }        
         private void MoveBall(float dt)
         {
-            
-            if (player1.serving)
+            bool serving = false;
+            for(int i = 0; i < Settings.PlayerCount; i++)
             {
-                // use render position here so the ball doesn't lag behind
-                ball.transform.position = player1.renderPosition + Settings.BallServeOffset;
-                ball.transform.position += (player1.transform.size.X / 2 + ball.transform.size.X / 2) * Vector2.UnitX;
-                if (InputHandler.current.player1ServeInput)
+                Player player = players[i];
+                if (player.serving)
                 {
-                    player1.serving = false;
-                    int dir = InputHandler.current.player1MoveInput == 0 ? 1 : InputHandler.current.player1MoveInput;
-                    ball.velocity = new Vector2(Settings.BallStartSpeed, Settings.BallStartSpeed * dir);
+                    serving = true;
+                    // use render position here so the ball doesn't lag behind
+                    ball.transform.position = player.renderPosition + player.normal * Settings.BallServeOffset;
+                    ball.transform.position += player.normal * (player.transform.size.X / 2 + ball.transform.size.X / 2);
+                    if (InputHandler.current.playerServeInput[i])
+                    {
+                        player.serving = false;
+                        int dir = InputHandler.current.playerMovementInput[i] == 0 ? 1 : InputHandler.current.playerMovementInput[i];
+                        ball.velocity = player.normal * Settings.BallStartSpeed + new Vector2(0, Settings.BallStartSpeed * dir);
+                    }
                 }
             }
-            else if (player2.serving)
-            {
-
-                ball.transform.position = player2.renderPosition - Settings.BallServeOffset;
-                ball.transform.position -= (player2.transform.size.X / 2 + ball.transform.size.X / 2) * Vector2.UnitX;
-                if (InputHandler.current.player2ServeInput)
-                {
-                    player2.serving = false;
-                    int dir = InputHandler.current.player2MoveInput == 0 ? -1 : InputHandler.current.player2MoveInput;
-                    ball.velocity = new Vector2(-Settings.BallStartSpeed, Settings.BallStartSpeed * dir);
-                }
-            }
-            else
+            if (!serving)
             {
                 Vector2 deltaPos = ball.velocity * dt;
 
                 bool collided = true;
+
                 // repeat collision checks until there are no collisions
                 while (collided)
                 {
@@ -127,51 +89,25 @@ namespace Pong
                     
                     Line[] collisionRays = ball.GetCollisionRays(deltaPos);
                     
-                    Line[] player1Edges = new Line[] { player1.transform.Right, player1.transform.Top, player1.transform.Bottom };
-
-                    Line[] player2Edges = new Line[] { player2.transform.Left, player2.transform.Top, player2.transform.Bottom };
-
+                    
 
                     Vector2 nextPos = ball.transform.position + deltaPos;
                     Vector2 intersect;
-                    
+
                     // a collision ray will always hit a player before hitting a wall (can be deduced from playfield layout)
 
-                    // Player 1 Collision Check
-                    // Check for intersections with the right player edge
+                    // Player Collision Check
 
-                    if (deltaPos.X < 0)
-                    {                        
-                        if (Utils.ClosestLineIntersection(collisionRays, player1Edges, out intersect, out int ia, out int ib, out float t))
+                    for(int i = 0; i < Settings.PlayerCount; i++)
+                    {
+                        Player player = players[i];
+                        if (Utils.ClosestLineIntersection(collisionRays, player.GetCollisionEdges(), out intersect, out int ia, out int ib, out float t))
                         {
                             Vector2 n;
                             switch (ib)
                             {
                                 case 0:
-                                    n = new Vector2(1, 0); // normal vector of right side (player1 is facing to the right)
-                                    break;
-                                default:
-                                    n = Vector2.Normalize(-deltaPos); // side collision: reverse travel direction
-                                    break;
-                            }
-                            
-                            deltaPos = ResolveCollision(collisionRays[ia].start, intersect, n, deltaPos);
-                            nextPos = intersect + ball.transform.position - collisionRays[ia].start;
-                            collided = true;
-                        }
-                    }
-                    // Player 2 Collision Check
-                    // Check for intersections with the left player edge
-                    else {
-
-                        // Check for both rays on the right side of the ball (index 1 and 3)
-                        if (Utils.ClosestLineIntersection(collisionRays, player2Edges, out intersect, out int ia, out int ib, out float t))
-                        {
-                            Vector2 n;
-                            switch (ib)
-                            {
-                                case 0:
-                                    n = new Vector2(-1, 0); // normal vector of right side (player1 is facing to the right)
+                                    n = player.normal;
                                     break;
                                 default:
                                     n = Vector2.Normalize(-deltaPos); // side collision: reverse travel direction
@@ -179,10 +115,12 @@ namespace Pong
                             }
 
                             deltaPos = ResolveCollision(collisionRays[ia].start, intersect, n, deltaPos);
-                            nextPos = intersect + ball.transform.position - collisionRays[ia].start;
+                            nextPos = intersect + ball.transform.position - collisionRays[ia].start + n * 0.01f;
                             collided = true;
+                            break;
                         }
                     }
+
                     // Top Wall Collision Check
                     // walls extend out to infinity so only one ray is needed here
                     if (deltaPos.Y < 0)
@@ -217,15 +155,15 @@ namespace Pong
         {
             if (ball.transform.position.X < 0)
             {
-                // player 1 missed, player 2 gets point, player 1 gets service
-                player2.lives += 1;
-                player1.serving = true;
+                // player 1 missed
+                players[0].lives -= 1;
+                players[0].serving = true;
             }
             else if (ball.transform.position.X > Settings.screenSize.X)
             {
-                // player 2 missed, player 1 gets point, player 2 gets service
-                player1.lives += 1;
-                player2.serving = true;
+                // player 2 missed
+                players[1].lives -= 1;
+                players[1].serving = true;
             }
         }
 
@@ -257,14 +195,21 @@ namespace Pong
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
-            player1 = new Player(new Vector2(Settings.playerHOffset, Settings.screenSize.Y/2),
-                                    Settings.PlayerSize,
-                                    true,
-                                    playerMovementSpeed);
-            player2 = new Player(new Vector2(Settings.screenSize.X - Settings.playerHOffset, Settings.screenSize.Y/2),
-                                    Settings.PlayerSize,
-                                    false,
-                                    playerMovementSpeed);
+            players = new Player[]{ 
+                new Player(
+                    0,
+                    new Vector2(Settings.playerHOffset, Settings.screenSize.Y/2), 
+                    Settings.PlayerSize, 
+                    true, 
+                    Settings.PlayerStartSpeed
+                    ),
+                new Player(
+                    1,
+                    new Vector2(Settings.screenSize.X - Settings.playerHOffset, Settings.screenSize.Y/2), 
+                    Settings.PlayerSize, 
+                    false, 
+                    Settings.PlayerStartSpeed) 
+            };
 
             ball = new Ball(new Vector2(Settings.screenSize.X / 2, Settings.screenSize.Y / 2),
                                     Settings.BallSize,
@@ -283,7 +228,7 @@ namespace Pong
         protected override void Update(GameTime gameTime)
         {
             float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
-            HandleInput();
+            InputHandler.current.HandleInput();
             MovePlayers(dt);
             MoveBall(dt);
             CheckMiss();
@@ -295,12 +240,14 @@ namespace Pong
             GraphicsDevice.Clear(Color.Black);
 
             spriteBatch.Begin();
-            DrawSpriteCentered(playerTexture, player1.renderPosition);
-            DrawSpriteCentered(playerTexture, player2.renderPosition);
-            DrawSpriteCentered(ballTexture, ball.transform.position);
+            foreach(Player player in players)
+            {
+                DrawSpriteCentered(playerTexture, player.renderPosition, Color.LightGoldenrodYellow);
+            }
+            DrawSpriteCentered(ballTexture, ball.transform.position, Color.Coral);
 
-            DrawTextCentered(player1.lives.ToString(), new Vector2(Settings.screenSize.X * 0.25f, Settings.screenSize.Y * 0.5f));
-            DrawTextCentered(player2.lives.ToString(), new Vector2(Settings.screenSize.X * 0.75f, Settings.screenSize.Y * 0.5f));
+            DrawTextCentered(players[0].lives.ToString(), new Vector2(Settings.screenSize.X * 0.25f, Settings.screenSize.Y * 0.5f));
+            DrawTextCentered(players[1].lives.ToString(), new Vector2(Settings.screenSize.X * 0.75f, Settings.screenSize.Y * 0.5f));
             spriteBatch.End();
             
             base.Draw(gameTime);

@@ -14,7 +14,7 @@ namespace Pong
         public static float playerHOffset { get; } = 128;
 
         // distance between paddle and ball when serving
-        public static Vector2 BallServeOffset { get; } = new Vector2(8, 0);
+        public static float BallServeOffset { get; } = 8;
 
         // hitbox size of the player
         public static Vector2 PlayerSize { get; } = new Vector2(32, 128);

@@ -4,19 +4,43 @@ namespace Pong
 {
     public class Player : Entity
     {
-        public Vector2 renderPosition;
-        public float movementSpeed;
-        public bool serving;
-        public int lives;
+        public int id;
 
-        public Player(Vector2 position, Vector2 size, bool serving, float movementSpeed) : base(position, size)
+        public Vector2 renderPosition;
+        public bool serving;
+        public float movementSpeed;
+        public int lives;
+        public Vector2 normal;
+        public Player(int id, Vector2 position, Vector2 size, bool serving, float movementSpeed) : base(position, size)
         {
+            this.id = id;
             this.renderPosition = position;
             this.serving = serving;
             this.movementSpeed = movementSpeed;
-
             this.lives = 3;
+            switch (id)
+            {
+                case 0:
+                    this.normal = new Vector2(1, 0);
+                    break;
+                case 1:
+                    this.normal = new Vector2(-1, 0);
+                    break;
+            }
         }        
+        public Line[] GetCollisionEdges()
+        {
+            switch (id)
+            {
+                case 0:
+                    return new Line[] { transform.Right, transform.Top, transform.Bottom };                    
+                case 1:
+                    return new Line[] { transform.Left, transform.Top, transform.Bottom };
+                default:
+                    return new Line[] { transform.Right, transform.Top, transform.Bottom };
+            }
+            
+        }
         public void Move(int dir, float dt)
         {
             var pos = transform.position;
