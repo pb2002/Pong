@@ -10,40 +10,22 @@ namespace Pong
         public bool serving;
         public float movementSpeedMultiplier;
         public int lives;
-        public Vector2 normal;
+        public int frontEdge;
+        private readonly int[] idFrontEdgeLUT = { 3, 2, 1, 0 };
         public Player(int id, Vector2 position, Vector2 size, bool serving) : base(position, size)
         {
             this.id = id;
-            this.renderPosition = position;
             this.serving = serving;
-            this.movementSpeedMultiplier = 1;
-            this.lives = 3;
-            switch (id)
-            {
-                case 0:
-                    this.normal = new Vector2(1, 0);
-                    break;
-                case 1:
-                    this.normal = new Vector2(-1, 0);
-                    break;
-            }
-        }        
-        public Line[] GetCollisionEdges()
-        {
-            switch (id)
-            {
-                case 0:
-                    return new Line[] { transform.Right, transform.Top, transform.Bottom };                    
-                case 1:
-                    return new Line[] { transform.Left, transform.Top, transform.Bottom };
-                default:
-                    return new Line[] { transform.Right, transform.Top, transform.Bottom };
-            }
             
+            renderPosition = position;
+            frontEdge = idFrontEdgeLUT[id];
+
+            movementSpeedMultiplier = 1;
+            lives = 3;
         }
         public void Move(int dir, float baseSpeed, float dt)
         {
-            var pos = transform.position;
+            Vector2 pos = transform.position;
 
             velocity = Vector2.UnitY * dir * movementSpeedMultiplier * baseSpeed;
 

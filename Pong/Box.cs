@@ -50,16 +50,26 @@ namespace Pong
         public Line Left => new Line(TL, BL);
         public Line Right => new Line(TR, BR);
         
-        public Line[] edges => new Line[]{Top, Bottom,Left,Right};
+        public Line[] Edges => new Line[]{Top, Bottom, Left, Right};
+        public static readonly Vector2[] normals = { -Vector2.UnitY, Vector2.UnitY, -Vector2.UnitX, Vector2.UnitX }; 
         public Box(Vector2 position, Vector2 size)
         {
             _position = position;
             _size = size;
-
+            
             TL = _position - size / 2;
             BR = _position + size / 2;
             TR = new Vector2(BR.X, TL.Y);
             BL = new Vector2(TL.X, BR.Y);
+        }
+        public Line[] GetCollisionRays(Vector2 delta)
+        {
+            return new Line[] {
+                new Line(TL, TL + delta),
+                new Line(TR, TR + delta),
+                new Line(BL, BL + delta),
+                new Line(BR, BR + delta)
+            };
         }
     }
 }

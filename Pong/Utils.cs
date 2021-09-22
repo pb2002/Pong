@@ -107,5 +107,19 @@ namespace Pong
             return rdn * remainingTravelDistance;
         }
 
+        public static bool CheckBoxCollision(Box a, Box b, Vector2 delta, out Collision collision)
+        {
+            collision = new Collision();
+            Line[] rays = a.GetCollisionRays(delta);
+            
+            if (!Utils.ClosestLineIntersection(rays, b.Edges, out Vector2 intersect, 
+                out int ia, out int ib, out float t)) return false;
+            
+            collision.hitEdgeIndex = ib;
+            collision.intersection = intersect;
+            collision.corner = rays[ia].start;
+            collision.hit = intersect + a.position - collision.corner;
+            return true;
+        }
     }
 }

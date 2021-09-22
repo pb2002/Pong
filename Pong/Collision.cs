@@ -2,11 +2,11 @@
 
 namespace Pong
 {
-    public class Collision
+    public struct Collision
     {
-        public Entity other;
         public Vector2 hit;
         public Vector2 intersection;
-        
+        public int hitEdgeIndex;
+        public Vector2 corner;
     }
 }

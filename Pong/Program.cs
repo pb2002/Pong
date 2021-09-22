@@ -9,6 +9,7 @@ namespace Pong
         {
             using (var game = new PongGame())
                 game.Run();
+            
         }
     }
 }
